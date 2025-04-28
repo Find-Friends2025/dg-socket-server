@@ -1,0 +1,62 @@
+package com.dgsocketserver.presentation.interceptor
+
+import com.dgsocketserver.client.TokenVerifyInternalApiClient
+import com.dgsocketserver.exception.AccessDeniedException
+import com.dgsocketserver.exception.InvalidParameterException
+import com.dgsocketserver.exception.SessionExpiredException
+import com.dgsocketserver.support.properties.InternalApiProperties
+import org.springframework.data.redis.core.StringRedisTemplate
+import org.springframework.http.server.ServerHttpRequest
+import org.springframework.http.server.ServerHttpResponse
+import org.springframework.stereotype.Component
+import org.springframework.web.socket.WebSocketHandler
+import org.springframework.web.socket.server.HandshakeInterceptor
+
+@Component
+class AuthHandshakeInterceptor(
+    private val redisTemplate: StringRedisTemplate,
+    private val tokenVerifyInternalApiClient: TokenVerifyInternalApiClient,
+    private val internalApiProperties: InternalApiProperties
+) : HandshakeInterceptor {
+    override fun beforeHandshake(
+        request: ServerHttpRequest,
+        response: ServerHttpResponse,
+        wsHandler: WebSocketHandler,
+        attributes: MutableMap<String, Any>
+    ): Boolean {
+        val headers = request.headers
+        val token = headers.getFirst("Authorization") ?: throw SessionExpiredException()
+
+        val userId =  tokenVerifyInternalApiClient.verifyToken(
+            token = token,
+            internalApiKey = internalApiProperties.apiKey
+        )
+
+        if (userId == null) throw AccessDeniedException()
+        if (!redisTemplate.hasKey("chat:user:$userId")) throw AccessDeniedException()
+
+        // 채팅방 ID를 확인
+        val uri = request.uri
+        val roomId = uri.query?.let {
+            val queryParams = uri.query.split("&").associate {
+                val pair = it.split("=")
+                pair[0] to pair[1]
+            }
+            queryParams["roomId"]?.toLongOrNull()
+        } ?: throw InvalidParameterException()
+
+        // 해당 채팅방에 유저가 속해 있는지 확인
+        redisTemplate.opsForSet().isMember("chat:info:$roomId:users", userId)
+            ?: throw SessionExpiredException()
+
+        attributes["userId"] = userId
+        return true
+    }
+
+    override fun afterHandshake(
+        request: ServerHttpRequest,
+        response: ServerHttpResponse,
+        wsHandler: WebSocketHandler,
+        exception: java.lang.Exception?
+    ) {}
+}
