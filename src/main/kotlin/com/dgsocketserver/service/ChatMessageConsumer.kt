@@ -33,7 +33,7 @@ class ChatMessageConsumer(
         val container = StreamMessageListenerContainer.create(redisTemplate.connectionFactory!!, options)
 
         container.receiveAutoAck(
-            Consumer.from("chat-group", "chat-consumer-1"),
+            Consumer.from("socket-group", "socket-consumer-1"),
             StreamOffset.create("chat:stream", ReadOffset.lastConsumed())
         ) { message: MapRecord<String, String, String> ->
             val value = message.value
