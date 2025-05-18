@@ -26,7 +26,7 @@ class ChatMessageProducer(
                 "images" to message.images
             ))
             .withStreamKey("chat:stream")
-
+        
         redisTemplate.opsForStream<String, Any>().add(record)
     }
 }

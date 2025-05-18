@@ -38,9 +38,10 @@ class ChatMessageConsumer(
         ) { message: MapRecord<String, String, String> ->
             val value = message.value
             val roomId: String = value["roomId"]!!
+            val senderId: String = value["senderId"]!!
             val document = MessageEntity(
                 chatRoomId = UUID.fromString(roomId),
-                senderId = value["senderId"]!!,
+                senderId = senderId,
                 senderName = value["senderName"]!!,
                 senderProfileImage = value["senderProfileImage"],
                 message = value["message"]!!,
@@ -48,6 +49,14 @@ class ChatMessageConsumer(
                 sendAt = LocalDateTime.now()
             )
             simpMessagingTemplate.convertAndSend("/topic/room.$roomId", messageRepository.save(document))
+            val users: Set<String> = redisTemplate.opsForSet()
+                .members("chat:info:$roomId:users")
+                ?.map { it.toString() }
+                ?.toSet() ?: emptySet()
+            val receiverUserId = users.first { it != senderId }
+            if (redisTemplate.hasKey("chat:user:$receiverUserId")) {
+                //TODO FCM 발송 로직 추가 + FCM TOKEN 저장 위치 결정
+            }
         }
         container.start()
     }
