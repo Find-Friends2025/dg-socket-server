@@ -26,6 +26,23 @@ class ChatMessageConsumer(
 
     @EventListener(ApplicationReadyEvent::class)
     fun startListening() {
+        val streamKey = "chat:stream"
+        val groupName = "socket-group"
+
+        val ops = redisTemplate.connectionFactory!!.connection
+        try {
+            ops.streamCommands().xGroupCreate(
+                streamKey.toByteArray(),
+                groupName,
+                ReadOffset.latest(),
+                true
+            )
+        } catch (e: Exception) {
+            if (!e.message.orEmpty().contains("BUSYGROUP")) {
+                throw e
+            }
+        }
+
         val options = StreamMessageListenerContainer.StreamMessageListenerContainerOptions
             .builder()
             .pollTimeout(Duration.ofSeconds(1))
@@ -34,8 +51,8 @@ class ChatMessageConsumer(
         val container = StreamMessageListenerContainer.create(redisTemplate.connectionFactory!!, options)
 
         container.receiveAutoAck(
-            Consumer.from("socket-group", "socket-consumer-1"),
-            StreamOffset.create("chat:stream", ReadOffset.lastConsumed())
+            Consumer.from(groupName, "socket-consumer-1"),
+            StreamOffset.create(streamKey, ReadOffset.lastConsumed())
         ) { message: MapRecord<String, String, String> ->
             val value = message.value
             val roomId: String = value["roomId"]!!
