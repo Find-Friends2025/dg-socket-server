@@ -5,6 +5,7 @@ import com.dgsocketserver.presentation.dto.ChatMessageDto
 import org.springframework.data.redis.connection.stream.StreamRecords
 import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.stereotype.Service
+import java.time.LocalDateTime
 import java.util.*
 
 @Service
@@ -18,12 +19,14 @@ class ChatMessageProducer(
 
         val record = StreamRecords.newRecord()
             .ofMap(mapOf(
+                "id" to
                 "roomId" to roomId.toString(),
                 "senderId" to userId,
                 "senderName" to entries["name"]!!,
                 "senderProfileImage" to entries["profileImg"],
                 "message" to message.message,
-                "images" to message.images
+                "images" to message.images,
+                "sendAt" to LocalDateTime.now()
             ))
             .withStreamKey("chat:stream")
 

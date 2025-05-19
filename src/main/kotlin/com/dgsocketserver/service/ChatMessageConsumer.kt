@@ -2,6 +2,7 @@ package com.dgsocketserver.service
 
 import com.dgsocketserver.db.MessageEntity
 import com.dgsocketserver.db.MessageRepository
+import org.bson.types.ObjectId
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.context.event.EventListener
 import org.springframework.data.redis.connection.stream.Consumer
@@ -33,21 +34,32 @@ class ChatMessageConsumer(
         val container = StreamMessageListenerContainer.create(redisTemplate.connectionFactory!!, options)
 
         container.receiveAutoAck(
-            Consumer.from("chat-group", "chat-consumer-1"),
+            Consumer.from("socket-group", "socket-consumer-1"),
             StreamOffset.create("chat:stream", ReadOffset.lastConsumed())
         ) { message: MapRecord<String, String, String> ->
             val value = message.value
             val roomId: String = value["roomId"]!!
+            val senderId: String = value["senderId"]!!
             val document = MessageEntity(
+                id = ObjectId(value["id"]!!),
                 chatRoomId = UUID.fromString(roomId),
-                senderId = value["senderId"]!!,
+                senderId = senderId,
                 senderName = value["senderName"]!!,
                 senderProfileImage = value["senderProfileImage"],
                 message = value["message"]!!,
                 images = value["images"]?.split(","),
-                sendAt = LocalDateTime.now()
+                sendAt = LocalDateTime.parse(value["sendAt"]!!),
+
             )
             simpMessagingTemplate.convertAndSend("/topic/room.$roomId", messageRepository.save(document))
+            val users: Set<String> = redisTemplate.opsForSet()
+                .members("chat:info:$roomId:users")
+                ?.map { it.toString() }
+                ?.toSet() ?: emptySet()
+            val receiverUserId = users.first { it != senderId }
+            if (redisTemplate.hasKey("chat:user:$receiverUserId")) {
+                //TODO FCM 발송 로직 추가 + FCM TOKEN 저장 위치 결정
+            }
         }
         container.start()
     }
