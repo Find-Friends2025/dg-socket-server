@@ -26,10 +26,9 @@ class AuthHandshakeInterceptor(
         attributes: MutableMap<String, Any>
     ): Boolean {
         val token = request.headers.getFirst("Authorization") ?: throw SessionExpiredException()
-        println(token)
-        println(internalApiProperties.apiKey)
+        val rawToken = token.removePrefix("Bearer ").trim()
         val userId = tokenVerifyInternalApiClient.verifyToken(
-            token = TokenVerifyDto(token),
+            token = TokenVerifyDto(rawToken),
             internalApiKey = internalApiProperties.apiKey
         ) ?: throw AccessDeniedException()
         if (!redisTemplate.hasKey("chat:user:$userId")) throw AccessDeniedException()
