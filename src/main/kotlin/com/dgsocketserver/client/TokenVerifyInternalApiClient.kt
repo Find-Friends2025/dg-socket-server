@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RequestHeader
 
 @FeignClient(name = "TokenVerify", url = "\${api.internal.base-url}")
 interface TokenVerifyInternalApiClient {
-    @PostMapping("/token/verify")
+    @PostMapping("/auth/token/verify")
     fun verifyToken(
         @RequestBody token: String,
         @RequestHeader("X-Internal-Api-Key") internalApiKey: String
