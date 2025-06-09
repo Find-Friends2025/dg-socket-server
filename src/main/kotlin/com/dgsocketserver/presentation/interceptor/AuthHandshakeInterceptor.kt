@@ -1,5 +1,6 @@
 package com.dgsocketserver.presentation.interceptor
 
+import com.dgsocketserver.client.TokenVerifyDto
 import com.dgsocketserver.client.TokenVerifyInternalApiClient
 import com.dgsocketserver.exception.AccessDeniedException
 import com.dgsocketserver.exception.SessionExpiredException
@@ -27,7 +28,7 @@ class AuthHandshakeInterceptor(
         val token = request.headers.getFirst("Authorization") ?: throw SessionExpiredException()
 
         val userId = tokenVerifyInternalApiClient.verifyToken(
-            token = token,
+            token = TokenVerifyDto(token),
             internalApiKey = internalApiProperties.apiKey
         ) ?: throw AccessDeniedException()
 

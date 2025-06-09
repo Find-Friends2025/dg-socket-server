@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestHeader
 interface TokenVerifyInternalApiClient {
     @PostMapping("/auth/token/verify")
     fun verifyToken(
-        @RequestBody token: String,
+        @RequestBody token: TokenVerifyDto,
         @RequestHeader("X-Internal-Api-Key") internalApiKey: String
     ): String?
 }
