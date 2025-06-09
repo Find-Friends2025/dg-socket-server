@@ -1,5 +1,7 @@
 package com.dgsocketserver.presentation.interceptor
 
+import com.dgsocketserver.exception.AccessDeniedException
+import com.dgsocketserver.exception.InvalidParameterException
 import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.messaging.Message
 import org.springframework.messaging.MessageChannel
@@ -9,29 +11,45 @@ import org.springframework.messaging.support.ChannelInterceptor
 import org.springframework.stereotype.Component
 import java.util.concurrent.ConcurrentHashMap
 
-
 @Component
 class StompChannelInterceptor(
     private val redisTemplate: RedisTemplate<String, Any>,
 ) : ChannelInterceptor {
-    private val sessionIdToUserId: MutableMap<String?, String> = ConcurrentHashMap()
+
+    private val sessionIdToUserId: MutableMap<String, String> = ConcurrentHashMap()
 
     override fun preSend(message: Message<*>, channel: MessageChannel): Message<*>? {
         val accessor = StompHeaderAccessor.wrap(message)
 
-        if (StompCommand.CONNECT == accessor.command) {
-            val sessionId = accessor.sessionId
-            val user = accessor.user
-            if (user != null) {
+        when (accessor.command) {
+            StompCommand.CONNECT -> {
+                val user = accessor.user ?: throw AccessDeniedException()
+                val sessionId = accessor.sessionId ?: throw AccessDeniedException()
                 sessionIdToUserId[sessionId] = user.name
             }
-        } else if (StompCommand.DISCONNECT == accessor.command) {
-            val sessionId = accessor.sessionId
-            val userId = sessionIdToUserId.remove(sessionId)
-            if (userId != null) {
-                redisTemplate.delete("chat:user:$userId")
+
+            StompCommand.SUBSCRIBE -> {
+                val sessionId = accessor.sessionId ?: throw AccessDeniedException()
+                val userId = sessionIdToUserId[sessionId] ?: throw AccessDeniedException()
+                val destination = accessor.destination ?: throw InvalidParameterException()
+
+                val roomId = destination.substringAfterLast(".").toLongOrNull()
+                    ?: throw InvalidParameterException()
+
+                val isMember = redisTemplate.opsForSet().isMember("chat:info:$roomId:users", userId)
+                if (isMember != true) throw AccessDeniedException()
+
+                redisTemplate.opsForSet().add("chat:room:$roomId:connectedUsers", userId)
             }
+
+            StompCommand.DISCONNECT -> {
+                val sessionId = accessor.sessionId
+                sessionId?.let { sessionIdToUserId.remove(it) }
+            }
+
+            else -> {}
         }
+
         return message
     }
 }
