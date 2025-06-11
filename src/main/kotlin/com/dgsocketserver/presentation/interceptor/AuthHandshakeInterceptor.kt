@@ -25,6 +25,8 @@ class AuthHandshakeInterceptor(
         wsHandler: WebSocketHandler,
         attributes: MutableMap<String, Any>
     ): Boolean {
+        println("join auth interceptor")
+        println("header: ${request.headers}")
         val token = request.headers.getFirst("Authorization") ?: throw SessionExpiredException()
         val rawToken = token.removePrefix("Bearer ").trim()
         val userId = tokenVerifyInternalApiClient.verifyToken(
