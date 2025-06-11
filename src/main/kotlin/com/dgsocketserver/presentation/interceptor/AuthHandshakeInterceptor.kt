@@ -14,7 +14,7 @@ import org.springframework.web.socket.server.HandshakeInterceptor
 
 @Component
 class AuthHandshakeInterceptor(
-    private val redisTemplate: StringRedisTemplate,
+//    private val redisTemplate: StringRedisTemplate,
     private val tokenVerifyInternalApiClient: TokenVerifyInternalApiClient,
     private val internalApiProperties: InternalApiProperties
 ) : HandshakeInterceptor {
@@ -31,7 +31,7 @@ class AuthHandshakeInterceptor(
             token = TokenVerifyDto(rawToken),
             internalApiKey = internalApiProperties.apiKey
         ) ?: throw AccessDeniedException()
-        if (!redisTemplate.hasKey("chat:user:$userId")) throw AccessDeniedException()
+//        if (!redisTemplate.hasKey("chat:user:$userId")) throw AccessDeniedException()
 
         attributes["userId"] = userId
         return true
