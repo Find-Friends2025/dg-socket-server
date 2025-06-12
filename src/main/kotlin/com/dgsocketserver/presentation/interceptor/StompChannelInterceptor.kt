@@ -1,7 +1,10 @@
 package com.dgsocketserver.presentation.interceptor
 
+import com.dgsocketserver.client.TokenVerifyDto
+import com.dgsocketserver.client.TokenVerifyInternalApiClient
 import com.dgsocketserver.exception.AccessDeniedException
 import com.dgsocketserver.exception.InvalidParameterException
+import com.dgsocketserver.support.properties.InternalApiProperties
 import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.messaging.Message
 import org.springframework.messaging.MessageChannel
@@ -14,6 +17,8 @@ import java.util.concurrent.ConcurrentHashMap
 @Component
 class StompChannelInterceptor(
     private val redisTemplate: RedisTemplate<String, Any>,
+    private val tokenVerifyInternalApiClient: TokenVerifyInternalApiClient,
+    private val internalApiProperties: InternalApiProperties
 ) : ChannelInterceptor {
 
     private val sessionIdToUserId: MutableMap<String, String> = ConcurrentHashMap()
@@ -23,9 +28,18 @@ class StompChannelInterceptor(
 
         when (accessor.command) {
             StompCommand.CONNECT -> {
-                val user = accessor.user ?: throw AccessDeniedException()
+                val token = accessor.getFirstNativeHeader("Authorization")
+                    ?.removePrefix("Bearer ")
+                    ?.trim()
+                    ?: throw AccessDeniedException()
+
+                val userId = tokenVerifyInternalApiClient.verifyToken(
+                    token = TokenVerifyDto(token),
+                    internalApiKey = internalApiProperties.apiKey
+                ) ?: throw AccessDeniedException()
+
                 val sessionId = accessor.sessionId ?: throw AccessDeniedException()
-                sessionIdToUserId[sessionId] = user.name
+                sessionIdToUserId[sessionId] = userId
             }
 
             StompCommand.SUBSCRIBE -> {

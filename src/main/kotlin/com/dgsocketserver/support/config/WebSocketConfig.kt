@@ -24,7 +24,7 @@ class WebSocketConfig(
     override fun registerStompEndpoints(registry: StompEndpointRegistry) {
         registry.addEndpoint("/ws")
             .setAllowedOriginPatterns("*")
-            .addInterceptors(authHandshakeInterceptor)
+//            .addInterceptors(authHandshakeInterceptor)
     }
 
     override fun configureClientInboundChannel(registration: ChannelRegistration) {
