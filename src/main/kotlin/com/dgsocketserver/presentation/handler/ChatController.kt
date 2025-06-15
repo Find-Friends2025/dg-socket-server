@@ -17,7 +17,11 @@ class ChatController(
         session: WebSocketSession,
         message: ChatMessageDto
     ) {
-        val userId = session.attributes["userId"] as? String ?: throw SessionExpiredException()
-        producer.publish(userId, message.roomId, message)
+        try {
+            val userId = session.attributes["userId"] as? String ?: throw SessionExpiredException()
+            producer.publish(userId, message.roomId, message)
+        } catch (e: Exception) {
+            println(e.message)
+        }
     }
 }
