@@ -12,6 +12,7 @@ import org.springframework.messaging.simp.stomp.StompCommand
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor
 import org.springframework.messaging.support.ChannelInterceptor
 import org.springframework.stereotype.Component
+import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
 @Component
@@ -46,14 +47,15 @@ class StompChannelInterceptor(
                 val sessionId = accessor.sessionId ?: throw AccessDeniedException()
                 val userId = sessionIdToUserId[sessionId] ?: throw AccessDeniedException()
                 val destination = accessor.destination ?: throw InvalidParameterException()
-
-                val roomId = destination.substringAfterLast(".").toLongOrNull()
-                    ?: throw InvalidParameterException()
-
+                val roomId = destination.substringAfterLast("/")
+                val roomUuid = try {
+                    UUID.fromString(roomId)
+                } catch (e: IllegalArgumentException) {
+                    throw InvalidParameterException()
+                }
                 val isMember = redisTemplate.opsForSet().isMember("chat:info:$roomId:users", userId)
                 if (isMember != true) throw AccessDeniedException()
-
-                redisTemplate.opsForSet().add("chat:room:$roomId:connectedUsers", userId)
+                redisTemplate.opsForSet().add("chat:room:$roomUuid:connectedUsers", userId)
             }
 
             StompCommand.DISCONNECT -> {
