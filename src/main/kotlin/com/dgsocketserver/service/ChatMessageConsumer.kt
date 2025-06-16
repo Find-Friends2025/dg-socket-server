@@ -50,7 +50,7 @@ class ChatMessageConsumer(
                 sendAt = LocalDateTime.parse(value["sendAt"]!!),
                 messageStatus = ChatStatusEnum.SENT
             )
-            simpMessagingTemplate.convertAndSend("/topic/room.$roomId", messageRepository.save(document))
+            simpMessagingTemplate.convertAndSend("/topic/room/$roomId", messageRepository.save(document))
             val users: Set<String> = redisTemplate.opsForSet()
                 .members("chat:info:$roomId:users")
                 ?.map { it.toString() }
