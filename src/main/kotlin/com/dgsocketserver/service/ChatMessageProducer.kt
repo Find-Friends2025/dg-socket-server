@@ -3,6 +3,7 @@ package com.dgsocketserver.service
 import com.dgsocketserver.exception.SessionExpiredException
 import com.dgsocketserver.presentation.dto.ChatMessageDto
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import org.bson.types.ObjectId
 import org.springframework.data.redis.connection.stream.StreamRecords
 import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.stereotype.Service
@@ -17,17 +18,14 @@ class ChatMessageProducer(
     private val mapper = jacksonObjectMapper()
 
     fun publish(userId: String, roomId: UUID, message: ChatMessageDto) {
-        println(1)
         val key = "chat:user:$userId"
-        println(2)
         val entries = redisTemplate.opsForHash<String, String>().entries(key)
-        println(3)
         if (entries.isEmpty()) throw SessionExpiredException()
-        println(4)
 
         val record = StreamRecords.newRecord()
             .ofMap(
                 mapOf(
+                    "id" to ObjectId().toString(),
                     "roomId" to roomId.toString(),
                     "senderId" to userId,
                     "senderName" to entries["name"]!!,
@@ -39,8 +37,6 @@ class ChatMessageProducer(
             )
             .withStreamKey("chat:stream")
 
-        println(5)
         redisTemplate.opsForStream<String, Any>().add(record)
-        println(6)
     }
 }

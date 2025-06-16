@@ -1,5 +1,6 @@
 package com.dgsocketserver.service
 
+import com.dgsocketserver.db.ChatStatusEnum
 import com.dgsocketserver.db.MessageEntity
 import com.dgsocketserver.db.MessageRepository
 import jakarta.annotation.PreDestroy
@@ -46,10 +47,10 @@ class ChatMessageConsumer(
                 senderProfileImage = value["senderProfileImage"],
                 message = value["message"]!!,
                 images = value["images"]?.split(","),
-                sendAt = LocalDateTime.parse(value["sendAt"]!!)
+                sendAt = LocalDateTime.parse(value["sendAt"]!!),
+                messageStatus = ChatStatusEnum.SENT
             )
             simpMessagingTemplate.convertAndSend("/topic/room.$roomId", messageRepository.save(document))
-
             val users: Set<String> = redisTemplate.opsForSet()
                 .members("chat:info:$roomId:users")
                 ?.map { it.toString() }
