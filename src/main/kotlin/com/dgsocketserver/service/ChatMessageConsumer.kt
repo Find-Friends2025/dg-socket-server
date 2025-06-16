@@ -39,8 +39,9 @@ class ChatMessageConsumer(
             val value = message.value
             val roomId = value["roomId"]!!
             val senderId = value["senderId"]!!
+            val id = ObjectId(value["id"]!!)
             val document = MessageEntity(
-                id = ObjectId(value["id"]!!),
+                id = id,
                 chatRoomId = UUID.fromString(roomId),
                 senderId = senderId,
                 senderName = value["senderName"]!!,
@@ -51,8 +52,21 @@ class ChatMessageConsumer(
                 messageStatus = ChatStatusEnum.SENT
             )
             val destination = "/topic/room/$roomId"
-            println(destination)
-            simpMessagingTemplate.convertAndSend(destination, messageRepository.save(document))
+            val saved = messageRepository.save(document)
+
+            val messageResponse = MessageResponse(
+                id = id.toHexString(),
+                chatRoomId = saved.chatRoomId,
+                senderId = saved.senderId,
+                senderName = saved.senderName,
+                senderProfileImage = saved.senderProfileImage,
+                message = saved.message,
+                images = saved.images,
+                sendAt = saved.sendAt,
+                messageStatus = saved.messageStatus
+            )
+
+            simpMessagingTemplate.convertAndSend(destination, messageResponse)
             val users: Set<String> = redisTemplate.opsForSet()
                 .members("chat:info:$roomId:users")
                 ?.map { it.toString() }
