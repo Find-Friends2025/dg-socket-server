@@ -19,10 +19,9 @@ import java.util.concurrent.ConcurrentHashMap
 class StompChannelInterceptor(
     private val redisTemplate: RedisTemplate<String, Any>,
     private val tokenVerifyInternalApiClient: TokenVerifyInternalApiClient,
-    private val internalApiProperties: InternalApiProperties
+    private val internalApiProperties: InternalApiProperties,
+    private val sessionRegistry: SessionRegistry
 ) : ChannelInterceptor {
-
-    private val sessionIdToUserId: MutableMap<String, String> = ConcurrentHashMap()
 
     override fun preSend(message: Message<*>, channel: MessageChannel): Message<*>? {
         val accessor = StompHeaderAccessor.wrap(message)
@@ -38,12 +37,12 @@ class StompChannelInterceptor(
                     internalApiKey = internalApiProperties.apiKey
                 ) ?: throw AccessDeniedException()
                 val sessionId = accessor.sessionId ?: throw AccessDeniedException()
-                sessionIdToUserId[sessionId] = userId
+                sessionRegistry.put(sessionId, userId)
             }
 
             StompCommand.SUBSCRIBE -> {
                 val sessionId = accessor.sessionId ?: throw AccessDeniedException()
-                val userId = sessionIdToUserId[sessionId] ?: throw AccessDeniedException()
+                val userId = sessionRegistry.getUserId(sessionId) ?: throw AccessDeniedException()
                 val destination = accessor.destination ?: throw InvalidParameterException()
                 val roomId = destination.substringAfterLast("/")
                 val roomUuid = try {
@@ -55,12 +54,11 @@ class StompChannelInterceptor(
                 if (isMember != true) throw AccessDeniedException()
 
                 redisTemplate.opsForSet().add("chat:room:$roomUuid:connectedUsers", userId)
-                println("sub success")
             }
 
             StompCommand.DISCONNECT -> {
                 val sessionId = accessor.sessionId
-                sessionId?.let { sessionIdToUserId.remove(it) }
+                sessionId?.let { sessionRegistry.remove(it) }
             }
 
             else -> {}

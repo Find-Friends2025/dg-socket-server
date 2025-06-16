@@ -34,7 +34,8 @@ class AuthHandshakeInterceptor(
             internalApiKey = internalApiProperties.apiKey
         ) ?: throw AccessDeniedException()
 //        if (!redisTemplate.hasKey("chat:user:$userId")) throw AccessDeniedException()
-
+        println("user:")
+        println(userId)
         attributes["userId"] = userId
         return true
     }
