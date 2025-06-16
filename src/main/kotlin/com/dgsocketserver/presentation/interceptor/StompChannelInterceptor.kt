@@ -33,12 +33,10 @@ class StompChannelInterceptor(
                     ?.removePrefix("Bearer ")
                     ?.trim()
                     ?: throw AccessDeniedException()
-
                 val userId = tokenVerifyInternalApiClient.verifyToken(
                     token = TokenVerifyDto(token),
                     internalApiKey = internalApiProperties.apiKey
                 ) ?: throw AccessDeniedException()
-
                 val sessionId = accessor.sessionId ?: throw AccessDeniedException()
                 sessionIdToUserId[sessionId] = userId
             }
@@ -55,7 +53,9 @@ class StompChannelInterceptor(
                 }
                 val isMember = redisTemplate.opsForSet().isMember("chat:info:$roomId:users", userId)
                 if (isMember != true) throw AccessDeniedException()
+
                 redisTemplate.opsForSet().add("chat:room:$roomUuid:connectedUsers", userId)
+                println("sub success")
             }
 
             StompCommand.DISCONNECT -> {
