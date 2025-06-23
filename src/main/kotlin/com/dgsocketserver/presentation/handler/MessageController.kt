@@ -2,6 +2,7 @@ package com.dgsocketserver.presentation.handler
 
 import com.dgsocketserver.db.MessageEntity
 import com.dgsocketserver.service.ChatMessageService
+import com.dgsocketserver.service.MessageResponse
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
@@ -18,7 +19,7 @@ class MessageController(
         @RequestParam chatRoomId: UUID,
         @RequestParam cursor: String?,
         @RequestParam(defaultValue = "20") size: Int
-    ): List<MessageEntity> {
+    ): List<MessageResponse> {
         return chatMessageService.getMessages(chatRoomId, cursor, size)
     }
 }
