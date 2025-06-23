@@ -19,15 +19,13 @@ class CustomMessageRepositoryImpl(
         size: Int
     ): List<MessageEntity> {
         val criteria = Criteria.where("chatRoomId").`is`(chatRoomId)
-
         if (cursor != null) {
             criteria.and("_id").lt(cursor) // 커서 기준 이전 메시지만 조회
         }
-
         val query = Query(criteria)
             .limit(size)
             .with(Sort.by(Sort.Direction.DESC, "_id")) // 최신 순
-
+        mongoTemplate.find(query, MessageEntity::class.java)
         return mongoTemplate.find(query, MessageEntity::class.java)
     }
 }

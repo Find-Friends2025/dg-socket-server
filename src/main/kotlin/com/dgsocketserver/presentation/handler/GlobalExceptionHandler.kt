@@ -95,6 +95,7 @@ class GlobalExceptionHandler {
     @ExceptionHandler(Exception::class)
     fun handleException(e: Exception, request: HttpServletRequest): ResponseEntity<ErrorResponseEntity> {
         val code = GlobalExceptionCode.INTERNAL_SERVER
+        println(e.message)
         return ResponseEntity
             .status(500)
             .body(ErrorResponseEntity.of(code.status, code.name, code.message))

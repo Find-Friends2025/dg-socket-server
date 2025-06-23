@@ -16,7 +16,7 @@ class MessageController(
     @GetMapping
     fun getMessages(
         @RequestParam chatRoomId: UUID,
-        @RequestParam cursor: String,
+        @RequestParam cursor: String?,
         @RequestParam(defaultValue = "20") size: Int
     ): List<MessageEntity> {
         return chatMessageService.getMessages(chatRoomId, cursor, size)

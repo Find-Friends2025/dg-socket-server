@@ -10,10 +10,12 @@ import java.util.UUID
 class ChatMessageService(
     private val customMessageRepository: CustomMessageRepository
 ) {
-    fun getMessages(chatRoomId: UUID, cursor: String, size: Int): List<MessageEntity> {
+    fun getMessages(chatRoomId: UUID, cursor: String?, size: Int): List<MessageEntity> {
+        val objectIdCursor = if (!cursor.isNullOrBlank() && ObjectId.isValid(cursor)) ObjectId(cursor) else null
+
         return customMessageRepository.findMessagesByChatRoomIdWithCursor(
             chatRoomId = chatRoomId,
-            cursor = ObjectId(cursor),
+            cursor = objectIdCursor,
             size = size
         )
     }
